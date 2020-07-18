@@ -1,4 +1,4 @@
-package com.example.day3.activity;
+package com.example.day4.activity;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -7,12 +7,15 @@ import androidx.recyclerview.widget.RecyclerView;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
+import android.widget.TextView;
+import android.widget.Toast;
 
-import com.example.day3.APIManager;
-import com.example.day3.R;
-import com.example.day3.adapter.NewsAdapter;
-import com.example.day3.interfaces.NewsOnClick;
-import com.example.day3.model.Item;
+import com.example.day4.APIManager;
+import com.example.day4.R;
+import com.example.day4.adapter.NewsAdapter;
+import com.example.day4.interfaces.NewsOnClick;
+import com.example.day4.model.news.news;
+import com.example.day4.model.news.newsreponse;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,13 +28,15 @@ import retrofit2.converter.gson.GsonConverterFactory;
 
 public class ListNewsActivity extends AppCompatActivity {
     RecyclerView rvListNews;
-    List<Item> listData;
+    List<news> listData;
+    newsreponse newlist;
     NewsAdapter adapter;
-
+    TextView tvidUser;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_list_news);
+
         getListData();
         listData = new ArrayList<>();
         adapter = new NewsAdapter(ListNewsActivity.this,listData);
@@ -40,35 +45,39 @@ public class ListNewsActivity extends AppCompatActivity {
         rvListNews.setLayoutManager(layoutManager);
         rvListNews.setAdapter(adapter);
 
+        Intent intent = getIntent();
+        String user = intent.getStringExtra("USER");
+        String token = intent.getStringExtra("TOKEN");
+        tvidUser = findViewById(R.id.tviduser);
+        tvidUser.setText(user);
         adapter.setiOnClick(new NewsOnClick() {
             @Override
             public void onClickItem(int position) {
-                Item model = listData.get(position);
-                Intent intent = new Intent(ListNewsActivity.this,DetailActivity.class);
-                intent.putExtra("URL",model.getContent().getUrl());
-                intent.putExtra("Object",model);
-                startActivity(intent);
+                news model = listData.get(position);
+                Toast.makeText(ListNewsActivity.this,model.getAuthor(),Toast.LENGTH_SHORT).show();
             }
         });
     }
+
     private void getListData(){
         Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl(APIManager.SERVICE_URL)
+                .baseUrl(APIManager.SERVICE_NEWS_URL)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
         APIManager service = retrofit.create(APIManager.class);
-        service.getListData().enqueue(new Callback<List<Item>>() {
+        service.getListData(APIManager.sources,APIManager.apiKey).enqueue(new Callback<newsreponse>() {
             @Override
-            public void onResponse(Call<List<Item>> call, Response<List<Item>> response) {
-               if(response.body()!=null){
-                   listData= response.body();
-                   adapter.reloadData(listData);
-               }
+            public void onResponse(Call<newsreponse> call, Response<newsreponse> response) {
+                if(response.body()!=null){
+                    newlist = response.body();
+                    listData = newlist.getArticles();
+                    adapter.reloadData(listData);
+                }
             }
 
             @Override
-            public void onFailure(Call<List<Item>> call, Throwable t) {
-                Log.d("TAG", "onFailure: " + t);
+            public void onFailure(Call<newsreponse> call, Throwable t) {
+                Log.d("TAG", "onFailure: "+t);
             }
         });
     }

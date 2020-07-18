@@ -1,6 +1,8 @@
 package com.example.day3.model;
 
-public class Content {
+import java.io.Serializable;
+
+public class Content implements Serializable {
     private String description;
     private String url;
 
